@@ -67,7 +67,7 @@ Tested on: macOS (Apple Silicon, 16 GB RAM).
 
 | File | Description |
 |---|---|
-| `code/attention_diagnostics.py` | Main Python script. Runs 5 diagnostic computations on GPT-2 small and produces 5 PDF figures. |
+| `code/attention_diagnostics.py` | Main Python script. Runs 5 diagnostic computations on GPT-2 small and produces 5 PDF figures (4 in the paper body, 1 in the appendix). |
 | `code/run_all.sh` | Master shell script. Creates virtual environment, installs dependencies, runs all diagnostics. |
 | `requirements.txt` | Pinned Python dependencies. |
 
@@ -115,6 +115,10 @@ python code/attention_diagnostics.py --hhi           # Figure A.1
 | Figure A.1: Attention concentration (HHI) | `output/figures/hhi.pdf` | `code/attention_diagnostics.py` | `--hhi` |
 
 There are no tables in this paper.
+
+## Repository
+
+Source code: https://github.com/eduardo-zambrano/rational-inattention-in-silicon
 
 ## License
 
