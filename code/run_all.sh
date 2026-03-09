@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 #
 # Master replication script for:
-#   "Rational Inattention in Silicon"
+#   "Discrete Choice in Silicon"
 #   Eduardo Zambrano, Cal Poly
 #
 # This script creates a virtual environment, installs dependencies,
-# runs all diagnostics, and produces the 5 figures in output/figures/.
+# runs all diagnostics, and produces the 6 figures in output/figures/.
 #
 # Usage:
 #   cd replication
@@ -19,7 +19,7 @@ REPL_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 cd "$REPL_ROOT"
 
 echo "============================================================"
-echo "  Replication: Rational Inattention in Silicon"
+echo "  Replication: Discrete Choice in Silicon"
 echo "  Eduardo Zambrano, Cal Poly"
 echo "============================================================"
 echo ""
@@ -78,11 +78,12 @@ echo "============================================================"
 echo "  Replication complete."
 echo ""
 echo "  Output figures:"
-echo "    output/figures/inclusive_value.pdf   (Figure 1)"
-echo "    output/figures/iia_test.pdf          (Figure 2)"
-echo "    output/figures/temperature.pdf       (Figure 3)"
-echo "    output/figures/head_aggregation.pdf  (Figure 4)"
-echo "    output/figures/hhi.pdf               (Figure A.1)"
+echo "    output/figures/inclusive_value.pdf    (Figure 1)"
+echo "    output/figures/iia_test.pdf           (Figure 2)"
+echo "    output/figures/temperature.pdf        (Figure 3)"
+echo "    output/figures/head_aggregation.pdf   (Figure 4)"
+echo "    output/figures/iv_vs_logit_lens.pdf   (Figure 5)"
+echo "    output/figures/hhi.pdf                (Figure A.1)"
 echo "============================================================"
 
 deactivate

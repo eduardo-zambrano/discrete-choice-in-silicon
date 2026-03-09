@@ -9,6 +9,7 @@ Computes:
   3. Effective temperature estimation per head
   4. Attention concentration (HHI) across layers
   5. Head aggregation and diversification
+  6. Inclusive value vs. logit lens comparison
 
 All computations are forward-pass only — no training or fine-tuning.
 
@@ -19,8 +20,9 @@ Usage:
     python attention_diagnostics.py --temperature  # Temperature estimation only
     python attention_diagnostics.py --hhi          # HHI only
     python attention_diagnostics.py --head-agg     # Head aggregation only
+    python attention_diagnostics.py --iv-lens      # IV vs logit lens only
 
-Output: Figures saved to ../paper/figures/
+Output: Figures saved to ../output/figures/
 """
 
 import argparse
@@ -33,7 +35,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 matplotlib.use("Agg")
 
-from transformers import GPT2Tokenizer, GPT2Model
+from transformers import GPT2Tokenizer, GPT2Model, GPT2LMHeadModel
 
 # ---------------------------------------------------------------------------
 # Configuration
@@ -629,6 +631,168 @@ def diagnostic_head_aggregation(model, tokenizer):
 
 
 # ---------------------------------------------------------------------------
+# Diagnostic 6: Inclusive Value vs. Logit Lens
+# ---------------------------------------------------------------------------
+
+
+def diagnostic_iv_vs_logit_lens(model, tokenizer):
+    """
+    Compare inclusive value trajectories with logit lens prediction convergence.
+
+    Inclusive value (from the discrete choice framework) measures the richness of
+    the attention information environment at each layer. The logit lens
+    (nostalgebraist 2020) projects the residual stream at each layer to vocabulary
+    space, measuring how close the intermediate representation is to the final
+    prediction. These track different dimensions of processing.
+    """
+    print("\n=== Diagnostic 6: Inclusive Value vs. Logit Lens ===")
+
+    # Load LM head model for logit lens
+    model_lm = GPT2LMHeadModel.from_pretrained(MODEL_NAME)
+    model_lm.eval()
+    model_lm.to(DEVICE)
+    lm_model = model_lm.transformer
+    ln_f = lm_model.ln_f
+    lm_head = model_lm.lm_head
+
+    all_iv = []
+    all_kl = []
+
+    for sent in SENTENCES:
+        inputs = tokenizer(sent, return_tensors="pt").to(DEVICE)
+        seq_len = inputs["input_ids"].shape[1]
+
+        # --- Inclusive value via hooks on the original model ---
+        logits_all, hooks = _register_logit_hooks(model)
+        with torch.no_grad():
+            outputs = model(**inputs, output_hidden_states=True)
+        for h in hooks:
+            h.remove()
+
+        iv_per_layer = []
+        for l in range(len(logits_all)):
+            logits_l = logits_all[l]
+            n_heads = logits_l.shape[0]
+            ivs = []
+            for h_idx in range(n_heads):
+                for i in range(seq_len):
+                    scores = logits_l[h_idx, i, :]
+                    finite = scores[np.isfinite(scores)]
+                    if len(finite) > 0:
+                        max_s = np.max(finite)
+                        iv = max_s + np.log(np.sum(np.exp(finite - max_s)))
+                        ivs.append(iv)
+            iv_per_layer.append(np.mean(ivs))
+
+        # --- Logit lens via hidden states from the LM model ---
+        logits_all2, hooks2 = _register_logit_hooks(lm_model)
+        with torch.no_grad():
+            outputs_lm = lm_model(**inputs, output_hidden_states=True)
+        for h in hooks2:
+            h.remove()
+
+        hidden_states = outputs_lm.hidden_states
+        n_layers = len(hidden_states) - 1
+
+        # Final-layer vocab distribution (last token)
+        h_final = hidden_states[-1][0, -1]
+        logits_final = lm_head(ln_f(h_final))
+        probs_final = torch.softmax(logits_final, dim=-1)
+        log_p_final = torch.log_softmax(logits_final, dim=-1)
+
+        # KL divergence from final layer at each layer
+        kl_per_layer = []
+        for layer_idx in range(1, n_layers + 1):
+            h_l = hidden_states[layer_idx][0, -1]
+            logits_l = lm_head(ln_f(h_l))
+            log_p_l = torch.log_softmax(logits_l, dim=-1)
+            kl = torch.sum(probs_final * (log_p_final - log_p_l)).item()
+            kl_per_layer.append(kl)
+
+        all_iv.append(np.array(iv_per_layer))
+        all_kl.append(np.array(kl_per_layer))
+
+    mean_iv = np.mean(all_iv, axis=0)
+    std_iv = np.std(all_iv, axis=0)
+    mean_kl = np.mean(all_kl, axis=0)
+    std_kl = np.std(all_kl, axis=0)
+    layers = np.arange(len(mean_iv))
+
+    # Key statistics
+    iv_abs_change = np.abs(np.diff(mean_iv))
+    kl_abs_change = np.abs(np.diff(mean_kl))
+    iv_frac = iv_abs_change / iv_abs_change.sum()
+    kl_frac = kl_abs_change / kl_abs_change.sum()
+    corr = np.corrcoef(iv_frac, kl_frac)[0, 1]
+
+    print(f"  IV fraction in layers 0-4:  {iv_frac[:4].sum():.1%}")
+    print(f"  KL fraction in layers 9-11: {kl_frac[8:].sum():.1%}")
+    print(f"  Correlation |ΔIV| vs |ΔKL|: {corr:.2f}")
+
+    # --- Figure ---
+    fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+
+    # Panel A: dual y-axis trajectories
+    ax1 = axes[0]
+    color_iv = "steelblue"
+    color_kl = "coral"
+
+    ln1 = ax1.plot(layers, mean_iv, "o-", color=color_iv, linewidth=2, markersize=5,
+                   label="Inclusive value $\\mathcal{V}$")
+    ax1.fill_between(layers, mean_iv - std_iv, mean_iv + std_iv,
+                     color=color_iv, alpha=0.15)
+    ax1.set_xlabel("Layer")
+    ax1.set_ylabel("Mean Inclusive Value (log $Z_i$)", color=color_iv)
+    ax1.tick_params(axis="y", labelcolor=color_iv)
+
+    ax2 = ax1.twinx()
+    ln2 = ax2.plot(layers, mean_kl, "s-", color=color_kl, linewidth=2, markersize=5,
+                   label="KL from final layer")
+    ax2.fill_between(layers, mean_kl - std_kl, mean_kl + std_kl,
+                     color=color_kl, alpha=0.15)
+    ax2.set_ylabel("KL$(p_{\\mathrm{final}} \\| p_{\\ell})$", color=color_kl)
+    ax2.tick_params(axis="y", labelcolor=color_kl)
+    ax2.invert_yaxis()
+
+    all_lines = ln1 + ln2
+    all_labels = [line.get_label() for line in all_lines]
+    ax1.legend(all_lines, all_labels, loc="center right", fontsize=9)
+    ax1.set_title("(a) Inclusive Value vs. Prediction Convergence")
+    ax1.grid(True, alpha=0.3)
+
+    # Panel B: fraction of total change per transition
+    ax = axes[1]
+    x = np.arange(len(iv_frac))
+    width = 0.35
+    ax.bar(x - width / 2, iv_frac, width, label="Inclusive value",
+           color="steelblue", alpha=0.8)
+    ax.bar(x + width / 2, kl_frac, width, label="Prediction (KL)",
+           color="coral", alpha=0.8)
+
+    ax.set_xlabel("Layer Transition")
+    ax.set_ylabel("Fraction of Total Change")
+    ax.set_title("(b) Where Processing Happens")
+    labels_x = [f"{l}\u2192{l+1}" for l in range(len(iv_frac))]
+    ax.set_xticks(x)
+    ax.set_xticklabels(labels_x, fontsize=7)
+    ax.legend(fontsize=9)
+    ax.grid(True, alpha=0.3, axis="y")
+
+    ax.axvspan(-0.5, 3.5, alpha=0.06, color="steelblue")
+    ax.axvspan(len(iv_frac) - 3.5, len(iv_frac) - 0.5, alpha=0.06, color="coral")
+    ylim = ax.get_ylim()
+    ax.text(1.5, ylim[1] * 0.92, "IV-dominated", fontsize=8, color="steelblue",
+            ha="center", style="italic")
+    ax.text(len(iv_frac) - 2, ylim[1] * 0.92, "Prediction-\ndominated", fontsize=8,
+            color="coral", ha="center", style="italic")
+
+    plt.tight_layout()
+    plt.savefig(FIGURES_DIR / "iv_vs_logit_lens.pdf", bbox_inches="tight", dpi=150)
+    plt.close()
+    print(f"  Saved: {FIGURES_DIR / 'iv_vs_logit_lens.pdf'}")
+
+
+# ---------------------------------------------------------------------------
 # Main
 # ---------------------------------------------------------------------------
 
@@ -643,11 +807,12 @@ def main():
     parser.add_argument("--temperature", action="store_true", help="Temperature estimation")
     parser.add_argument("--hhi", action="store_true", help="Concentration (HHI)")
     parser.add_argument("--head-agg", action="store_true", help="Head aggregation diagnostic")
+    parser.add_argument("--iv-lens", action="store_true", help="IV vs logit lens")
     args = parser.parse_args()
 
     # Default to all if nothing specified
     if not any([args.all, args.inclusive, args.iia, args.temperature, args.hhi,
-                args.head_agg]):
+                args.head_agg, args.iv_lens]):
         args.all = True
 
     FIGURES_DIR.mkdir(parents=True, exist_ok=True)
@@ -668,6 +833,9 @@ def main():
 
     if args.all or args.head_agg:
         diagnostic_head_aggregation(model, tokenizer)
+
+    if args.all or args.iv_lens:
+        diagnostic_iv_vs_logit_lens(model, tokenizer)
 
     print("\nAll diagnostics complete.")
 

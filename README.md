@@ -67,7 +67,7 @@ Tested on: macOS (Apple Silicon, 16 GB RAM).
 
 | File | Description |
 |---|---|
-| `code/attention_diagnostics.py` | Main Python script. Runs 5 diagnostic computations on the 117M-parameter model and produces 5 PDF figures (4 in the paper body, 1 in the appendix). |
+| `code/attention_diagnostics.py` | Main Python script. Runs 6 diagnostic computations on the 117M-parameter model and produces 6 PDF figures (5 in the paper body, 1 in the appendix). |
 | `code/run_all.sh` | Master shell script. Creates virtual environment, installs dependencies, runs all diagnostics. |
 | `requirements.txt` | Pinned Python dependencies. |
 
@@ -101,6 +101,7 @@ python code/attention_diagnostics.py --inclusive     # Figure 1
 python code/attention_diagnostics.py --iia           # Figure 2
 python code/attention_diagnostics.py --temperature   # Figure 3
 python code/attention_diagnostics.py --head-agg      # Figure 4
+python code/attention_diagnostics.py --iv-lens       # Figure 5
 python code/attention_diagnostics.py --hhi           # Figure A.1
 ```
 
@@ -112,6 +113,7 @@ python code/attention_diagnostics.py --hhi           # Figure A.1
 | Figure 2: IIA deviations from the logit null | `output/figures/iia_test.pdf` | `code/attention_diagnostics.py` | `--iia` |
 | Figure 3: Attention entropy ratio | `output/figures/temperature.pdf` | `code/attention_diagnostics.py` | `--temperature` |
 | Figure 4: Head aggregation and diversification | `output/figures/head_aggregation.pdf` | `code/attention_diagnostics.py` | `--head-agg` |
+| Figure 5: Inclusive value vs. logit lens | `output/figures/iv_vs_logit_lens.pdf` | `code/attention_diagnostics.py` | `--iv-lens` |
 | Figure A.1: Attention concentration (HHI) | `output/figures/hhi.pdf` | `code/attention_diagnostics.py` | `--hhi` |
 
 There are no tables in this paper.
