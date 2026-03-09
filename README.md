@@ -1,6 +1,6 @@
 # Replication Package
 
-## "Rational Inattention in Silicon"
+## "Discrete Choice in Silicon"
 
 Eduardo Zambrano
 Department of Economics, California Polytechnic State University
@@ -10,7 +10,7 @@ Email: ezambran@calpoly.edu
 
 ## Overview
 
-This package contains the code to reproduce all figures in "Rational Inattention in Silicon." The code runs forward-pass diagnostics on GPT-2 small (117M parameters) and requires no external datasets. All computations are deterministic.
+This package contains the code to reproduce all figures in "Discrete Choice in Silicon." The code runs forward-pass diagnostics on a 117M-parameter transformer model (GPT-2 small) and requires no external datasets. All computations are deterministic.
 
 ## Data Availability and Provenance
 
@@ -67,7 +67,7 @@ Tested on: macOS (Apple Silicon, 16 GB RAM).
 
 | File | Description |
 |---|---|
-| `code/attention_diagnostics.py` | Main Python script. Runs 5 diagnostic computations on GPT-2 small and produces 5 PDF figures (4 in the paper body, 1 in the appendix). |
+| `code/attention_diagnostics.py` | Main Python script. Runs 5 diagnostic computations on the 117M-parameter model and produces 5 PDF figures (4 in the paper body, 1 in the appendix). |
 | `code/run_all.sh` | Master shell script. Creates virtual environment, installs dependencies, runs all diagnostics. |
 | `requirements.txt` | Pinned Python dependencies. |
 
@@ -109,16 +109,16 @@ python code/attention_diagnostics.py --hhi           # Figure A.1
 | Figure in Paper | Output File | Program | CLI Flag |
 |---|---|---|---|
 | Figure 1: Inclusive value trajectories | `output/figures/inclusive_value.pdf` | `code/attention_diagnostics.py` | `--inclusive` |
-| Figure 2: IIA deviations | `output/figures/iia_test.pdf` | `code/attention_diagnostics.py` | `--iia` |
+| Figure 2: IIA deviations from the logit null | `output/figures/iia_test.pdf` | `code/attention_diagnostics.py` | `--iia` |
 | Figure 3: Attention entropy ratio | `output/figures/temperature.pdf` | `code/attention_diagnostics.py` | `--temperature` |
-| Figure 4: Head aggregation | `output/figures/head_aggregation.pdf` | `code/attention_diagnostics.py` | `--head-agg` |
+| Figure 4: Head aggregation and diversification | `output/figures/head_aggregation.pdf` | `code/attention_diagnostics.py` | `--head-agg` |
 | Figure A.1: Attention concentration (HHI) | `output/figures/hhi.pdf` | `code/attention_diagnostics.py` | `--hhi` |
 
 There are no tables in this paper.
 
 ## Repository
 
-Source code: https://github.com/eduardo-zambrano/rational-inattention-in-silicon
+Source code: https://github.com/eduardo-zambrano/discrete-choice-in-silicon
 
 ## License
 

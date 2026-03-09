@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Attention Diagnostics for "Rational Inattention in Silicon"
+Attention Diagnostics for "Discrete Choice in Silicon"
 
 Forward-pass diagnostics on GPT-2 small (117M parameters).
 Computes:
@@ -635,7 +635,7 @@ def diagnostic_head_aggregation(model, tokenizer):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Attention diagnostics for 'Rational Inattention in Silicon'"
+        description="Attention diagnostics for 'Discrete Choice in Silicon'"
     )
     parser.add_argument("--all", action="store_true", help="Run all diagnostics")
     parser.add_argument("--inclusive", action="store_true", help="Inclusive value trajectories")
