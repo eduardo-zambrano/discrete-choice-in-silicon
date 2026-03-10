@@ -10,7 +10,7 @@ Email: ezambran@calpoly.edu
 
 ## Overview
 
-This package contains the code to reproduce all figures in "Discrete Choice in Silicon." The code runs forward-pass diagnostics on a 117M-parameter transformer model (GPT-2 small) and requires no external datasets. All computations are deterministic.
+This package contains the code to reproduce all figures in "Discrete Choice in Silicon." The code runs forward-pass diagnostics on a 117M-parameter transformer model (GPT-2 small) with 12 layers and 12 attention heads per layer, and requires no external datasets. All computations are deterministic.
 
 ## Data Availability and Provenance
 
@@ -20,7 +20,7 @@ The author has legitimate access to all data and code used in this paper.
 
 ### Summary of Availability
 
-No external datasets are used. The pretrained GPT-2 small model (117M parameters) is downloaded automatically from HuggingFace on first execution. The input corpus consists of 8 English sentences hardcoded in the script (lines 47--56 of `code/attention_diagnostics.py`). All data used in this paper are publicly available.
+No external datasets are used. The pretrained GPT-2 small model (117M parameters) is downloaded automatically from HuggingFace on first execution. The input corpus consists of 8 English sentences hardcoded in the script (lines 49--58 of `code/attention_diagnostics.py`). All data used in this paper are publicly available.
 
 | Data Source | Provider | Access |
 |---|---|---|
